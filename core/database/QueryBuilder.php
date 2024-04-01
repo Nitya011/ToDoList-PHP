@@ -21,31 +21,33 @@ class QueryBuilder {
         $statement = $this->pdo->prepare($sql);
         $statement->execute($data);
     }
-
-    public function update($table, $data, $id) {
-        // Prepare the SET clause for the update query
-        $fields = [];
-        $values = [];
-        foreach ($data as $key => $value) {
-            // Skip the ID field as it should not be updated
-            if ($key !== 'id') {
-                $fields[] = "$key = ?";
-                $values[] = $value;
-            }
+    
+    public function update($table, $parameters, $whereClause, $whereParameters)
+    {
+        $setParts = [];
+        foreach ($parameters as $key => $value) {
+            $setParts[] = "{$key} = :{$key}";
         }
-        $setClause = implode(', ', $fields);
-    
-        // Prepare the update query
-        $sql = "UPDATE $table SET $setClause WHERE id = ?";
-        $values[] = $id;
-    
-        // Execute the update query using prepared statement
+        $setClause = implode(', ', $setParts);
+        // Construct the update query
+        $sql = sprintf(
+            'UPDATE %s SET %s WHERE %s',
+            $table,
+            $setClause,
+            $whereClause
+        );
+        // Merge parameters for set values and where clause
+        $allParameters = array_merge($parameters, $whereParameters);
+        // Prepare and execute the query
         $statement = $this->pdo->prepare($sql);
-        $statement->execute($values);
-    }    
+        foreach ($allParameters as $key => &$value) {
+            $statement->bindParam(":{$key}", $value);
+        }
+        $statement->execute();
+        return $statement->rowCount() > 0;
+    }
     public function delete($table, $id) {
         $sql = "DELETE FROM $table WHERE id = :id";
-
         $statement = $this->pdo->prepare($sql);
         $statement->execute(['id' => $id]);
     }

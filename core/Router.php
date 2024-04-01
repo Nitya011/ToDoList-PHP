@@ -32,22 +32,35 @@ class Router {
 
     public function direct($uri, $requestType) {
         //var_dump($uri, $this->routes[$requestType]);
-        if (array_key_exists($uri, $this->routes[$requestType])) {
-            return $this->callAction(
-                ...explode('@', $this->routes[$requestType][$uri])
-            );
+        foreach ($this->routes[$requestType] as $route => $controller) {
+            // Convert route pattern to a regular expression
+            $pattern = preg_replace('/\/{([^\/]+)}/', '/([^/]+)', $route);
+            $pattern = str_replace('/', '\/', $pattern);
+            $pattern = '/^' . $pattern . '$/';
+    
+            // Check if the requested URI matches the route pattern
+            if (preg_match($pattern, $uri, $matches)) {
+                array_shift($matches); // Remove the first element (full match)
+                // Explode the controller string to get controller and method
+                $controllerParts = explode('@', $controller);
+                // Pass matched parameters to the controller action
+                return $this->callAction(
+                    $controllerParts[0], // Controller
+                    $controllerParts[1], // Method
+                    $matches // Matched parameters
+                );
+            }
         }
         throw new Exception('No route defined for this URI.');
-    }
-
-    protected function callAction($controller, $action) {
-        $controller = new $controller;
+    }   
+      
+    protected function callAction($controllerName, $action, $parameters=[]) {
+        $controller = new $controllerName;
         if (!method_exists($controller, $action)) {
             throw new Exception(
-                "{$controller} does not respond to the {$action} action."
+                "{$controllerName} does not respond to the {$action} action."
             );
         }
-        return $controller->$action();
-        //return call_user_func_array([$controller, $action], $params);
+        return call_user_func_array([$controller, $action], $parameters);
     }
 }

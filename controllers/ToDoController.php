@@ -19,17 +19,22 @@ class ToDoController {
                 'completed' => $data['completed']
             ]);
         } else {
-            // Handle invalid JSON data
-            http_response_code(400); // Bad Request
+            http_response_code(400);
             echo json_encode(['error' => 'Invalid JSON data']);
         }
     }
     public function update($id) {
-        var_dump($id);
         $data = json_decode(file_get_contents('php://input'), true);
-        App::get('database')->update('todos', $data, $id);
-        header('Content-Type: application/json');
-        echo json_encode(['message' => 'Todo updated successfully']);
+        if($data != null){
+            App::get('database')->update('todos', [
+                'description' => $data['description'], 
+                'completed' => $data['completed']
+            ], "id = :id", ['id' => $id]);
+            echo json_encode(['message' => 'Todo updated successfully']);
+        } else {
+            http_response_code(400);
+            echo json_encode(['error' => 'Invalid JSON data']);
+        }
     }
 
     public function delete($id) {
