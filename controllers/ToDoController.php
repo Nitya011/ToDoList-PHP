@@ -29,7 +29,7 @@ class ToDoController {
             App::get('database')->update('todos', [
                 'description' => $data['description'], 
                 'completed' => $data['completed']
-            ], "id = :id", ['id' => $id]);
+            ], "id = $id");
             echo json_encode(['message' => 'Todo updated successfully']);
         } else {
             http_response_code(400);
